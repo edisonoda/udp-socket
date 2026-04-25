@@ -1,5 +1,8 @@
 from socket import *
-import threading
+import hashlib
+import os
+
+FILE_DIR = 'files'
 
 IP = '127.0.0.1'
 PORT = 2000
@@ -23,11 +26,22 @@ def parse_msg(msg):
 
 def start_transfer(filename, addr):
     if not filename:
-        S_SOCKET.sendto('Nome do arquivo invalido!'.encode(), addr)
+        S_SOCKET.sendto('400: Nome do arquivo invalido!'.encode(), addr)
+        return
+
+    if filename[0] != '/':
+        filename = '/' + filename
+    
+    if not os.path.isfile(FILE_DIR + filename):
+        S_SOCKET.sendto('404: Arquivo nao encontrado!'.encode(), addr)
         return
 
     S_SOCKET.sendto(f'Iniciado {filename}!'.encode(), addr)
     # Buscar arquivo
+
+def send_segment(file, seq):
+    # TODO: Enviar próximo seguimento
+    pass
 
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
