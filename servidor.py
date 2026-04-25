@@ -1,11 +1,11 @@
 from socket import *
 import threading
 
-ip = '127.0.0.1'
-port = 2000
+IP = '127.0.0.1'
+PORT = 2000
 
 # Cria o socket UDP (IPv4, Datagrama)
-serverSocket = socket(AF_INET, SOCK_DGRAM)
+S_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
 # Padronização das ações:
 # - GET arquivo.ext
@@ -23,10 +23,10 @@ def parse_msg(msg):
 
 def start_transfer(filename, addr):
     if not filename:
-        serverSocket.sendto('Nome do arquivo invalido!'.encode(), addr)
+        S_SOCKET.sendto('Nome do arquivo invalido!'.encode(), addr)
         return
 
-    serverSocket.sendto(f'Iniciado {filename}!'.encode(), addr)
+    S_SOCKET.sendto(f'Iniciado {filename}!'.encode(), addr)
     # Buscar arquivo
 
 # Protocolo simples para receber a requisição
@@ -37,20 +37,20 @@ def handle_req(msg, addr):
         filename = args[0] if args else None
         start_transfer(filename, addr)
     elif action == 'ACK':
-        serverSocket.sendto('ACK'.encode(), addr)
+        S_SOCKET.sendto('ACK'.encode(), addr)
         # TODO: Criar outro handler (enviar próximo pacote ou lidar com perdas)
         pass
 
 def main():
     # Porta: número maior que 1024
     # Fixa a porta (’’ escuta em todas as interfaces de rede)
-    serverSocket.bind((ip, port))
-    print(f'Servidor escutando no endereco: {ip}:{port}')
+    S_SOCKET.bind((IP, PORT))
+    print(f'Servidor escutando no endereco: {IP}:{PORT}')
 
     while True:
         # Aguardar conexões/mensagens de clientes.
         # Bloqueia e aguarda pacote. Salva dados e IP/Porta de origem
-        msg, addr = serverSocket.recvfrom(2048)
+        msg, addr = S_SOCKET.recvfrom(2048)
         handle_req(msg.decode(), addr)
 
         # serverSocket.sendto(res.encode(), addr)
