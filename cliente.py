@@ -1,21 +1,19 @@
 from socket import *
-import json
 
 # ip = input('Insira o endereço IP: ')
-# porta = int(input('Insira a porta do servidor: '))
+# port = int(input('Insira a porta do servidor: '))
 ip = '127.0.0.1'
-porta = 12000
+port = 2000
 
 # Cria o socket UDP (IPv4, Datagrama)
 # AF_INET (Address Family - Internet)
 # SOCK_DGRAM (Socket Datagram)
 clientSocket = socket(AF_INET, SOCK_DGRAM)
-server = (ip, porta)
+server = (ip, port)
 
 def main():
-    req = {'type': 'GET', 'msg': '/gatinho.gif', 'ack': 0}
-
-    clientSocket.sendto(json.dumps(req).encode(), server)
+    msg = 'GET /teste.png'
+    clientSocket.sendto(msg.encode(), server)
 
     recebidos = []
 
