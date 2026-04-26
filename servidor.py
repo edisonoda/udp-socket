@@ -1,5 +1,6 @@
+from common import *
+
 from socket import *
-import hashlib
 import os
 
 FILE_DIR = 'files'
@@ -26,15 +27,6 @@ CLIENTS = {}
 # Cria o socket UDP (IPv4, Datagrama)
 S_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
-# Padronização das ações:
-# - GET arquivo.ext
-# - DATA seq checksum bytes
-# - (N)ACK seq
-# - END
-
-def checksum(data):
-    return hashlib.md5(data).hexdigest()
-
 def segment_file(filename):
     with open(FILE_DIR + filename, 'rb') as f:
         while True:
@@ -47,24 +39,16 @@ def formatted_client(addr):
     c_ip, c_port = addr
     return f'{c_ip}:{c_port}'
 
-def parse_msg(msg):
-    parts = msg.split()
-    if not parts:
-        return None, None
-    
-    # 0: ação, 1-N: outros argumentos
-    return parts[0], parts[1:]
-
 def start_transfer(filename, addr):
     if not filename:
-        S_SOCKET.sendto('400: Nome do arquivo invalido!'.encode(), addr)
+        S_SOCKET.sendto('ERROR 400: Nome do arquivo invalido!'.encode(), addr)
         return
 
     if filename[0] != '/':
         filename = '/' + filename
     
     if not os.path.isfile(FILE_DIR + filename):
-        S_SOCKET.sendto('404: Arquivo nao encontrado!'.encode(), addr)
+        S_SOCKET.sendto('ERROR 404: Arquivo nao encontrado!'.encode(), addr)
         return
 
     CLIENTS[formatted_client(addr)] = { 'filename': filename }
