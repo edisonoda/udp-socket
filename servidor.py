@@ -12,13 +12,24 @@ SEG_SIZE = 512
 # Estrutura: { 'filename': [seg0, seg1, ...] }
 FILES = {}
 
+# Estrutura: {
+#   'IP:PORT': {
+#       'filename': name
+#       TODO: outros parâmetros para controle de fluxo
+#       'acked': list (ou set?),
+#       'seq': 0
+#       'wnd_size': n,
+#   }
+# }
+CLIENTS = {}
+
 # Cria o socket UDP (IPv4, Datagrama)
 S_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
 # Padronização das ações:
 # - GET arquivo.ext
 # - DATA seq checksum bytes
-# - ACK seq
+# - (N)ACK seq
 # - END
 
 def checksum(data):
@@ -31,6 +42,10 @@ def segment_file(filename):
             if not seg:
                 break
             yield seg
+
+def formatted_client(addr):
+    c_ip, c_port = addr
+    return f'{c_ip}:{c_port}'
 
 def parse_msg(msg):
     parts = msg.split()
@@ -52,16 +67,29 @@ def start_transfer(filename, addr):
         S_SOCKET.sendto('404: Arquivo nao encontrado!'.encode(), addr)
         return
 
+    CLIENTS[formatted_client(addr)] = { 'filename': filename }
+
     # Caso o arquivo não tenha sido segmentado
     if filename not in FILES.keys():
         FILES[filename] = list(segment_file(filename))
+        total = len(FILES[filename])
     
-    S_SOCKET.sendto(f'Iniciado {filename}!'.encode(), addr)
-    # Buscar arquivo
+    # TODO: mover o envio de segmentos por ACK
+    # Temporário
+    for seq in range(total):
+        send_segment(filename, seq, addr)
+    S_SOCKET.sendto(b'END', addr)
 
-def send_segment(file, seq):
-    # TODO: Enviar próximo seguimento
-    pass
+    # send_segment(filename, 0, addr)
+    # print(f'Transferência iniciada para: ({addr}) {filename}')
+
+def send_segment(filename, seq, addr):
+    data = FILES[filename][seq]
+    cs = checksum(data)
+
+    header = f'DATA {seq} {cs} '.encode()
+
+    S_SOCKET.sendto(header + data, addr)
 
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
@@ -70,10 +98,16 @@ def handle_req(msg, addr):
     if action == 'GET':
         filename = args[0] if args else None
         start_transfer(filename, addr)
-    elif action == 'ACK':
-        S_SOCKET.sendto('ACK'.encode(), addr)
-        # TODO: Criar outro handler (enviar próximo pacote ou lidar com perdas)
-        pass
+    # TODO: ACK com controle de fluxo por cliente
+    # elif action == 'ACK':
+    #     seq = int(args[0]) if args else None
+    #     send_segment(filename, seq, addr)
+    elif action == 'NACK':
+        seq = int(args[0]) if args else None
+        client = CLIENTS[formatted_client(addr)]
+
+        if client:
+            send_segment(client['filename'], seq, addr)
 
 def main():
     # Porta: número maior que 1024
