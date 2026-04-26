@@ -7,14 +7,30 @@ FILE_DIR = 'files'
 IP = '127.0.0.1'
 PORT = 2000
 
+SEG_SIZE = 512
+
+# Estrutura: { 'filename': [seg0, seg1, ...] }
+FILES = {}
+
 # Cria o socket UDP (IPv4, Datagrama)
 S_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
 # Padronização das ações:
 # - GET arquivo.ext
-# - DATA seq bytes
+# - DATA seq checksum bytes
 # - ACK seq
 # - END
+
+def checksum(data):
+    return hashlib.md5(data).hexdigest()
+
+def segment_file(filename):
+    with open(FILE_DIR + filename, 'rb') as f:
+        while True:
+            seg = f.read(SEG_SIZE)
+            if not seg:
+                break
+            yield seg
 
 def parse_msg(msg):
     parts = msg.split()
@@ -36,6 +52,10 @@ def start_transfer(filename, addr):
         S_SOCKET.sendto('404: Arquivo nao encontrado!'.encode(), addr)
         return
 
+    # Caso o arquivo não tenha sido segmentado
+    if filename not in FILES.keys():
+        FILES[filename] = list(segment_file(filename))
+    
     S_SOCKET.sendto(f'Iniciado {filename}!'.encode(), addr)
     # Buscar arquivo
 
