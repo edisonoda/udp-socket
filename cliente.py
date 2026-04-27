@@ -2,19 +2,27 @@ from common import *
 
 from socket import *
 
-IP = '127.0.0.1'
-PORT = 2000
-SERVER = (IP, PORT)
+SERVER = (S_IP, S_PORT)
 
 # Cria o socket UDP (IPv4, Datagrama)
 # AF_INET (Address Family - Internet)
 # SOCK_DGRAM (Socket Datagram)
 C_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
+FILENAME = 'test.txt'
+
 TOTAL_SEGS = 0
 
 # Dict para receber fora de ordem/com perdas
 RECEIVED = {}
+
+def write_file():
+    name, ext = FILENAME.split('.', 1)
+    save_name = f'{FILE_DIR}{name}_recebido.{ext}' if ext else f'{FILE_DIR}{name}_recebido'
+
+    with open(save_name, 'wb') as f:
+        for seq in sorted(RECEIVED.keys()):
+            f.write(RECEIVED[seq])
 
 # Estrutura: DATA seq checksum bytes
 def receive_segment(args):
@@ -40,6 +48,7 @@ def handle_res(res, addr):
         global TOTAL_SEGS
         TOTAL_SEGS = int(args[0].decode())
     elif action == 'END':
+        write_file()
         return True
     elif action == 'ERROR':
         print(f'ERROR {" ".join(arg.decode() for arg in args)}')
@@ -49,9 +58,12 @@ def handle_res(res, addr):
     return False
 
 def main():
+    global FILENAME
+    FILENAME = '/diagrama.jpg'
+
     # IP = input('Insira o endereço IP: ')
     # PORT = int(input('Insira a porta do servidor: '))
-    msg = 'GET /diagrama.jpg'
+    msg = f'GET {FILENAME}'
 
     C_SOCKET.sendto(msg.encode(), SERVER)
     end = False

@@ -3,11 +3,6 @@ from common import *
 from socket import *
 import os
 
-FILE_DIR = 'files'
-
-IP = '127.0.0.1'
-PORT = 2000
-
 SEG_SIZE = 512
 
 # Estrutura: { 'filename': [seg0, seg1, ...] }
@@ -70,7 +65,7 @@ def start_transfer(filename, addr):
     # Temporário
     for seq in range(total):
         send_segment(filename, seq, addr)
-    print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')    
+    print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')
     S_SOCKET.sendto(b'END', addr)
 
 def send_segment(filename, seq, addr):
@@ -106,8 +101,8 @@ def handle_req(msg, addr):
 def main():
     # Porta: número maior que 1024
     # Fixa a porta (’’ escuta em todas as interfaces de rede)
-    S_SOCKET.bind((IP, PORT))
-    print(f'Servidor escutando no endereco: {IP}:{PORT}')
+    S_SOCKET.bind((S_IP, S_PORT))
+    print(f'Servidor escutando no endereco: {S_IP}:{S_PORT}')
 
     while True:
         # Aguardar conexões/mensagens de clientes.

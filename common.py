@@ -8,6 +8,11 @@ import hashlib
 # - ERROR
 # - END
 
+S_IP = '127.0.0.1'
+S_PORT = 2000
+
+FILE_DIR = 'files'
+
 def checksum(data):
     return hashlib.md5(data).hexdigest()
 
