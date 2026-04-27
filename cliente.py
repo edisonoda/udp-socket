@@ -2,6 +2,8 @@ from common import *
 
 from socket import *
 
+import random
+
 SERVER = (S_IP, S_PORT)
 
 # Cria o socket UDP (IPv4, Datagrama)
@@ -12,6 +14,8 @@ C_SOCKET = socket(AF_INET, SOCK_DGRAM)
 FILENAME = 'test.txt'
 
 TOTAL_SEGS = 0
+
+LOSS_PROB = 0.05
 
 # Dict para receber fora de ordem/com perdas
 RECEIVED = {}
@@ -24,12 +28,19 @@ def write_file():
         for seq in sorted(RECEIVED.keys()):
             f.write(RECEIVED[seq])
 
+def check_package_loss(seq):
+    if random.random() < LOSS_PROB:
+        print(f'Pacote {seq} perdido!')
+        return True
+    return False
+
 # Estrutura: DATA seq checksum bytes
 def receive_segment(args):
     seq, cs = args[:2]
     seq = int(seq.decode())
     cs = cs.decode()
 
+    if check_package_loss(seq): return
     data = args[2]
 
     if cs != checksum(data):
@@ -60,6 +71,8 @@ def handle_res(res, addr):
 
 def main():
     global FILENAME
+    global LOSS_PROB
+
     FILENAME = '/diagrama.jpg'
 
     # IP = input('Insira o endereço IP: ')

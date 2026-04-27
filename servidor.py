@@ -2,8 +2,10 @@ from common import *
 
 from socket import *
 import os
+import time
 
 SEG_SIZE = 1024
+TIMEOUT = .5
 
 # Estruturas:
 # - { 'filename': [seg0, seg1, ...] }
@@ -28,8 +30,10 @@ def formatted_client(addr):
 
 def create_client(filename, addr):
     CLIENTS[formatted_client(addr)] = {
+        'addr': addr,
         'filename': filename,
         'acked': set(),
+        'sent_times': {},
         'seq': 0,
         'wnd_start': 0,
         'wnd_size': WND_SIZE,
@@ -45,6 +49,7 @@ def send_window(addr):
         seq = client['seq']
         send_segment(filename, seq, addr)
 
+        client['sent_times'][seq] = time.time()
         client['seq'] += 1
     
     if client['seq'] == total and not client['ended']:
@@ -105,6 +110,7 @@ def handle_nack(addr, seq):
     if client:
         print(f'NACK recebido para o pacote {seq + 1} de {formatted_client(addr)}')
         send_segment(client['filename'], seq, addr)
+        client['sent_times'][seq] = time.time()
 
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
@@ -124,15 +130,34 @@ def handle_req(msg, addr):
         seq = int(args[0]) if args else None
         handle_nack(addr, seq)
 
+def check_timeouts():
+    now = time.time()
+
+    for addr, client in CLIENTS.items():
+        for seq in range(client['wnd_start'], client['seq']):
+            if seq not in client['acked']:
+                if now - client['sent_times'].get(seq, 0) > TIMEOUT:
+                    print(f"!!! Timeout {seq} para {addr}")
+                    send_segment(client['filename'], seq, client['addr'])
+                    client['sent_times'][seq] = now
+
 def main():
     S_SOCKET.bind((S_IP, S_PORT))
     print(f'Servidor escutando no endereco: {S_IP}:{S_PORT}')
 
+    # Configuração de timeout do socket (para a verificação dos pacotes perdidos)
+    S_SOCKET.settimeout(TIMEOUT/2)
+
     while True:
         # Aguardar conexões/mensagens de clientes.
         # Bloqueia e aguarda pacote. Salva dados e IP/Porta de origem
-        msg, addr = S_SOCKET.recvfrom(2048)
-        handle_req(msg, addr)
+        try:
+            msg, addr = S_SOCKET.recvfrom(2048)
+            handle_req(msg, addr)
+        except timeout:
+            pass
+
+        check_timeouts()
 
 if __name__ == "__main__":
     main()
