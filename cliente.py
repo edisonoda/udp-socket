@@ -1,31 +1,47 @@
+from common import *
+
 from socket import *
 
-# ip = input('Insira o endereço IP: ')
-# port = int(input('Insira a porta do servidor: '))
 IP = '127.0.0.1'
 PORT = 2000
+SERVER = (IP, PORT)
 
 # Cria o socket UDP (IPv4, Datagrama)
 # AF_INET (Address Family - Internet)
 # SOCK_DGRAM (Socket Datagram)
 C_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
+# Dict para receber fora de ordem/com perdas
+RECEIVED = {}
+
+def receive_segment(args):
+    # TODO: lógica de recebimento do segmento
+    return
+
+def handle_res(res, addr):
+    action, args = parse_msg(res)
+
+    if action == 'END':
+        return True
+    elif action == 'ERROR':
+        print(f'ERROR {args}')
+    elif action == 'DATA': # Estrutura: DATA seq checksum bytes
+        receive_segment(args)
+    
+    return False
+
 def main():
+    # IP = input('Insira o endereço IP: ')
+    # PORT = int(input('Insira a porta do servidor: '))
     msg = 'GET /teste.png'
-    C_SOCKET.sendto(msg.encode(), (IP, PORT))
 
-    recebidos = []
+    C_SOCKET.sendto(msg.encode(), SERVER)
+    end = False
 
-    # simulação perda
-
-    # recepção
-    # verificar integridade segmentos
-    # Aguarda resposta (buffer de 2048) e decodifica
-    resp, addr = C_SOCKET.recvfrom(2048)
-    print('Servidor:', resp.decode())
-    recebidos.append(resp.decode())
-
-    # montagem
+    while not end:
+        # Aguarda resposta (buffer de 2048) e decodifica
+        res, addr = C_SOCKET.recvfrom(2048)
+        end = handle_res(res, addr)
 
     # Encerra a conexão
     C_SOCKET.close()
