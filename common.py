@@ -2,6 +2,7 @@ import hashlib
 
 # Padronização das ações:
 # - GET arquivo.ext
+# - START size
 # - DATA seq checksum bytes
 # - (N)ACK seq
 # - ERROR

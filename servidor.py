@@ -60,16 +60,17 @@ def start_transfer(filename, addr):
     # Caso o arquivo não tenha sido segmentado
     if filename not in FILES.keys():
         FILES[filename] = list(segment_file(filename))
-        total = len(FILES[filename])
 
+    total = len(FILES[filename])
     # send_segment(filename, 0, addr)
-    # print(f'Transferência iniciada para: ({formatted_client(addr)}) {filename}')
+    print(f'Transferência iniciada para {formatted_client(addr)}: {filename}')
+    S_SOCKET.sendto(f'START {total}'.encode(), addr)
     
     # TODO: mover o envio de segmentos por ACK
     # Temporário
     for seq in range(total):
         send_segment(filename, seq, addr)
-    print(f'Transferência finalizada para: ({formatted_client(addr)}) {filename}')    
+    print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')    
     S_SOCKET.sendto(b'END', addr)
 
 def send_segment(filename, seq, addr):
@@ -78,7 +79,7 @@ def send_segment(filename, seq, addr):
 
     header = f'DATA {seq} {cs} '.encode()
 
-    print(f'Enviando {seq}/{len(FILES[filename])} para {formatted_client(addr)}')
+    print(f'Enviando {seq + 1}/{len(FILES[filename])} para {formatted_client(addr)}')
     S_SOCKET.sendto(header + data, addr)
 
 # Protocolo simples para receber a requisição
@@ -99,7 +100,7 @@ def handle_req(msg, addr):
         client = CLIENTS[formatted_client(addr)]
 
         if client:
-            print(f'NACK recebido para o pacote {seq} de {formatted_client(addr)}')
+            print(f'NACK recebido para o pacote {seq + 1} de {formatted_client(addr)}')
             send_segment(client['filename'], seq, addr)
 
 def main():
