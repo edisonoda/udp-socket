@@ -1,6 +1,6 @@
 from common import *
-
 from socket import *
+from datetime import datetime
 
 import random
 
@@ -11,7 +11,7 @@ SERVER = (S_IP, S_PORT)
 # SOCK_DGRAM (Socket Datagram)
 C_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
-FILENAME = 'test.txt'
+FILENAME = '/diagrama.jpg'
 
 TOTAL_SEGS = 0
 
@@ -22,7 +22,11 @@ RECEIVED = {}
 
 def write_file():
     name, ext = FILENAME.split('.', 1)
-    save_name = f'{FILE_DIR}{name}_recebido.{ext}' if ext else f'{FILE_DIR}{name}_recebido'
+
+    if ext:
+        save_name = f'{FILE_DIR}{name}_recebido_{datetime.now().isoformat()}.{ext}'
+    else:
+        save_name = f'{FILE_DIR}{name}_recebido_{datetime.now().isoformat()}'
 
     with open(save_name, 'wb') as f:
         for seq in sorted(RECEIVED.keys()):
@@ -69,14 +73,32 @@ def handle_res(res, addr):
     
     return False
 
-def main():
+def get_user_req():
     global FILENAME
     global LOSS_PROB
+    global SERVER
 
-    FILENAME = '/diagrama.jpg'
+    LOSS_PROB = float(input(f'Insira a probabilidade de perda de pacotes [Padrão: {LOSS_PROB}]: ') or LOSS_PROB)
 
-    # IP = input('Insira o endereço IP: ')
-    # PORT = int(input('Insira a porta do servidor: '))
+    req = f'{S_IP}:{S_PORT}{FILENAME}'
+    valid = False
+    while not valid:
+        req = input(f'\
+            Insira uma requisição no formato IP_Servidor:Porta_Servidor/nome_do_arquivo.ext \
+            [Padrão: {req}]: \
+        ') or req
+
+        ip, req = req.split(f':', 1)
+        port, name = req.split(f'/', 1)
+
+        if ip and port and port.isdigit() and name:
+            valid = True
+
+    SERVER = (ip, int(port))
+    FILENAME = name if name[0] == '/' else '/' + name
+
+def main():
+    get_user_req()
     msg = f'GET {FILENAME}'
 
     C_SOCKET.sendto(msg.encode(), SERVER)
