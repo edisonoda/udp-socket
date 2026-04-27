@@ -48,6 +48,7 @@ def handle_res(res, addr):
         global TOTAL_SEGS
         TOTAL_SEGS = int(args[0].decode())
     elif action == 'END':
+        print('Finalizado!')
         write_file()
         return True
     elif action == 'ERROR':

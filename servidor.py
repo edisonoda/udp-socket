@@ -5,18 +5,10 @@ import os
 
 SEG_SIZE = 512
 
-# Estrutura: { 'filename': [seg0, seg1, ...] }
+# Estruturas:
+# - { 'filename': [seg0, seg1, ...] }
+# - { 'IP:PORT': {...} }
 FILES = {}
-
-# Estrutura: {
-#   'IP:PORT': {
-#       'filename': name
-#       TODO: outros parâmetros para controle de fluxo
-#       'acked': list (ou set?),
-#       'seq': 0
-#       'wnd_size': n,
-#   }
-# }
 CLIENTS = {}
 
 # Cria o socket UDP (IPv4, Datagrama)
@@ -34,6 +26,30 @@ def formatted_client(addr):
     c_ip, c_port = addr
     return f'{c_ip}:{c_port}'
 
+def create_client(filename, addr):
+    CLIENTS[formatted_client(addr)] = {
+        'filename': filename,
+        'acked': set(),
+        'seq': 0,
+        'wnd_start': 0,
+        'wnd_size': WND_SIZE
+    }
+
+def send_window(addr):
+    client = CLIENTS[formatted_client(addr)]
+    filename = client['filename']
+    total = len(FILES[filename])
+
+    while (client['seq'] < total and client['seq'] < client['wnd_start'] + client['wnd_size']):
+        seq = client['seq']
+        send_segment(filename, seq, addr)
+
+        client['seq'] += 1
+    
+    if client['seq'] == total:
+        print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')
+        S_SOCKET.sendto(b'END', addr)
+
 def start_transfer(filename, addr):
     if not filename:
         msg = f'ERROR 400: {filename} (nome do arquivo invalido)'
@@ -50,23 +66,17 @@ def start_transfer(filename, addr):
         S_SOCKET.sendto(msg.encode(), addr)
         return
 
-    CLIENTS[formatted_client(addr)] = { 'filename': filename }
-
     # Caso o arquivo não tenha sido segmentado
     if filename not in FILES.keys():
         FILES[filename] = list(segment_file(filename))
 
     total = len(FILES[filename])
-    # send_segment(filename, 0, addr)
+
     print(f'Transferência iniciada para {formatted_client(addr)}: {filename}')
     S_SOCKET.sendto(f'START {total}'.encode(), addr)
-    
-    # TODO: mover o envio de segmentos por ACK
-    # Temporário
-    for seq in range(total):
-        send_segment(filename, seq, addr)
-    print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')
-    S_SOCKET.sendto(b'END', addr)
+
+    create_client(filename, addr)
+    send_window(addr)
 
 def send_segment(filename, seq, addr):
     data = FILES[filename][seq]
@@ -77,6 +87,23 @@ def send_segment(filename, seq, addr):
     print(f'Enviando {seq + 1}/{len(FILES[filename])} para {formatted_client(addr)}')
     S_SOCKET.sendto(header + data, addr)
 
+def handle_ack(addr, seq):
+    client = CLIENTS[formatted_client(addr)]
+    if not client: return
+    
+    client['acked'].add(seq)
+    while client['wnd_start'] in client['acked']:
+        client['wnd_start'] += 1
+    
+    send_window(addr)
+
+def handle_nack(addr, seq):
+    client = CLIENTS[formatted_client(addr)]
+
+    if client:
+        print(f'NACK recebido para o pacote {seq + 1} de {formatted_client(addr)}')
+        send_segment(client['filename'], seq, addr)
+
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
     action, args = parse_msg(msg)
@@ -86,21 +113,16 @@ def handle_req(msg, addr):
     if action == 'GET':
         filename = args[0] if args else None
         start_transfer(filename, addr)
-    # TODO: ACK com controle de fluxo por cliente
-    # elif action == 'ACK':
-    #     seq = int(args[0]) if args else None
-    #     send_segment(filename, seq, addr)
+
+    elif action == 'ACK':
+        seq = int(args[0]) if args else None
+        handle_ack(addr, seq)
+
     elif action == 'NACK':
         seq = int(args[0]) if args else None
-        client = CLIENTS[formatted_client(addr)]
-
-        if client:
-            print(f'NACK recebido para o pacote {seq + 1} de {formatted_client(addr)}')
-            send_segment(client['filename'], seq, addr)
+        handle_nack(addr, seq)
 
 def main():
-    # Porta: número maior que 1024
-    # Fixa a porta (’’ escuta em todas as interfaces de rede)
     S_SOCKET.bind((S_IP, S_PORT))
     print(f'Servidor escutando no endereco: {S_IP}:{S_PORT}')
 
@@ -109,8 +131,6 @@ def main():
         # Bloqueia e aguarda pacote. Salva dados e IP/Porta de origem
         msg, addr = S_SOCKET.recvfrom(2048)
         handle_req(msg, addr)
-
-        # serverSocket.sendto(res.encode(), addr)
 
 if __name__ == "__main__":
     main()
