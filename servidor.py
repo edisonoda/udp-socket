@@ -41,7 +41,7 @@ def formatted_client(addr):
 
 def start_transfer(filename, addr):
     if not filename:
-        msg = 'ERROR 400: Nome do arquivo invalido!'
+        msg = f'ERROR 400: {filename} (nome do arquivo invalido)'
         print(msg)
         S_SOCKET.sendto(msg.encode(), addr)
         return
@@ -50,7 +50,7 @@ def start_transfer(filename, addr):
         filename = '/' + filename
     
     if not os.path.isfile(FILE_DIR + filename):
-        msg = 'ERROR 404: Arquivo nao encontrado!'
+        msg = f'ERROR 404: Arquivo {filename} nao encontrado!'
         print(msg)
         S_SOCKET.sendto(msg.encode(), addr)
         return
@@ -84,6 +84,8 @@ def send_segment(filename, seq, addr):
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
     action, args = parse_msg(msg)
+    action = action.decode()
+    args = [arg.decode() for arg in args]
 
     if action == 'GET':
         filename = args[0] if args else None
@@ -110,7 +112,7 @@ def main():
         # Aguardar conexões/mensagens de clientes.
         # Bloqueia e aguarda pacote. Salva dados e IP/Porta de origem
         msg, addr = S_SOCKET.recvfrom(2048)
-        handle_req(msg.decode(), addr)
+        handle_req(msg, addr)
 
         # serverSocket.sendto(res.encode(), addr)
 

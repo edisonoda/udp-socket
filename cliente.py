@@ -19,12 +19,14 @@ def receive_segment(args):
     return
 
 def handle_res(res, addr):
+    print('Handling')
     action, args = parse_msg(res)
+    action = action.decode()
 
     if action == 'END':
         return True
     elif action == 'ERROR':
-        print(f'ERROR {args}')
+        print(f'ERROR {" ".join(arg.decode() for arg in args)}')
     elif action == 'DATA': # Estrutura: DATA seq checksum bytes
         receive_segment(args)
     
