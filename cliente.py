@@ -11,23 +11,39 @@ SERVER = (IP, PORT)
 # SOCK_DGRAM (Socket Datagram)
 C_SOCKET = socket(AF_INET, SOCK_DGRAM)
 
+TOTAL_SEGS = 0
+
 # Dict para receber fora de ordem/com perdas
 RECEIVED = {}
 
+# Estrutura: DATA seq checksum bytes
 def receive_segment(args):
-    # TODO: lógica de recebimento do segmento
-    return
+    seq, cs = args[:2]
+    seq = int(seq.decode())
+    cs = cs.decode()
+
+    data = args[2]
+
+    if cs != checksum(data):
+        print(f'Erro (checksum) no segmento {seq + 1}')
+        C_SOCKET.sendto(f'NACK {seq}'.encode(), SERVER)
+    else:
+        print(f'Recebido: {seq + 1}/{TOTAL_SEGS}')
+        RECEIVED[seq] = data
+        C_SOCKET.sendto(f'ACK {seq}'.encode(), SERVER)
 
 def handle_res(res, addr):
-    print('Handling')
     action, args = parse_msg(res)
     action = action.decode()
 
-    if action == 'END':
+    if action == 'START':
+        global TOTAL_SEGS
+        TOTAL_SEGS = int(args[0].decode())
+    elif action == 'END':
         return True
     elif action == 'ERROR':
         print(f'ERROR {" ".join(arg.decode() for arg in args)}')
-    elif action == 'DATA': # Estrutura: DATA seq checksum bytes
+    elif action == 'DATA':
         receive_segment(args)
     
     return False
@@ -35,7 +51,7 @@ def handle_res(res, addr):
 def main():
     # IP = input('Insira o endereço IP: ')
     # PORT = int(input('Insira a porta do servidor: '))
-    msg = 'GET /teste.png'
+    msg = 'GET /diagrama.jpg'
 
     C_SOCKET.sendto(msg.encode(), SERVER)
     end = False
