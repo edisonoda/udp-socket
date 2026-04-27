@@ -41,14 +41,18 @@ def formatted_client(addr):
 
 def start_transfer(filename, addr):
     if not filename:
-        S_SOCKET.sendto('ERROR 400: Nome do arquivo invalido!'.encode(), addr)
+        msg = 'ERROR 400: Nome do arquivo invalido!'
+        print(msg)
+        S_SOCKET.sendto(msg.encode(), addr)
         return
 
     if filename[0] != '/':
         filename = '/' + filename
     
     if not os.path.isfile(FILE_DIR + filename):
-        S_SOCKET.sendto('ERROR 404: Arquivo nao encontrado!'.encode(), addr)
+        msg = 'ERROR 404: Arquivo nao encontrado!'
+        print(msg)
+        S_SOCKET.sendto(msg.encode(), addr)
         return
 
     CLIENTS[formatted_client(addr)] = { 'filename': filename }
@@ -57,15 +61,16 @@ def start_transfer(filename, addr):
     if filename not in FILES.keys():
         FILES[filename] = list(segment_file(filename))
         total = len(FILES[filename])
+
+    # send_segment(filename, 0, addr)
+    # print(f'Transferência iniciada para: ({formatted_client(addr)}) {filename}')
     
     # TODO: mover o envio de segmentos por ACK
     # Temporário
     for seq in range(total):
         send_segment(filename, seq, addr)
+    print(f'Transferência finalizada para: ({formatted_client(addr)}) {filename}')    
     S_SOCKET.sendto(b'END', addr)
-
-    # send_segment(filename, 0, addr)
-    # print(f'Transferência iniciada para: ({addr}) {filename}')
 
 def send_segment(filename, seq, addr):
     data = FILES[filename][seq]
@@ -73,6 +78,7 @@ def send_segment(filename, seq, addr):
 
     header = f'DATA {seq} {cs} '.encode()
 
+    print(f'Enviando {seq}/{len(FILES[filename])} para {formatted_client(addr)}')
     S_SOCKET.sendto(header + data, addr)
 
 # Protocolo simples para receber a requisição
@@ -91,6 +97,7 @@ def handle_req(msg, addr):
         client = CLIENTS[formatted_client(addr)]
 
         if client:
+            print(f'NACK recebido para o pacote {seq} de {formatted_client(addr)}')
             send_segment(client['filename'], seq, addr)
 
 def main():
