@@ -3,7 +3,7 @@ from common import *
 from socket import *
 import os
 
-SEG_SIZE = 512
+SEG_SIZE = 1024
 
 # Estruturas:
 # - { 'filename': [seg0, seg1, ...] }
@@ -32,7 +32,8 @@ def create_client(filename, addr):
         'acked': set(),
         'seq': 0,
         'wnd_start': 0,
-        'wnd_size': WND_SIZE
+        'wnd_size': WND_SIZE,
+        'ended': False
     }
 
 def send_window(addr):
@@ -46,7 +47,8 @@ def send_window(addr):
 
         client['seq'] += 1
     
-    if client['seq'] == total:
+    if client['seq'] == total and not client['ended']:
+        client['ended'] = True
         print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')
         S_SOCKET.sendto(b'END', addr)
 
