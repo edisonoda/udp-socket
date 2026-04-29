@@ -103,13 +103,25 @@ def main():
     get_user_req()
     msg = f'GET {FILENAME}'
 
+    # Configuração de timeout do socket (para a verificação de conexão com o servidor)
+    C_SOCKET.settimeout(TIMEOUT * 2)
+    confirmed_connection = False
+
     C_SOCKET.sendto(msg.encode(), SERVER)
     end = False
 
     while not end:
         # Aguarda resposta (buffer de 2048) e decodifica
-        res, addr = C_SOCKET.recvfrom(2048)
-        end = handle_res(res, addr)
+        try:
+            res, addr = C_SOCKET.recvfrom(2048)
+            end = handle_res(res, addr)
+        except timeout:
+            if not confirmed_connection:
+                print(f'Erro: Não foi possível iniciar conexão com o servidor {S_IP}:{S_PORT} (timeout)')
+            else:
+                print(f'Erro: Conexão com o servidor {S_IP}:{S_PORT} perdida (timeout)')
+            
+            end = True
 
     # Encerra a conexão
     C_SOCKET.close()

@@ -13,7 +13,9 @@ S_PORT = 2000
 
 FILE_DIR = 'files'
 
-WND_SIZE = 10
+WND_SIZE = 20
+
+TIMEOUT = 2
 
 def checksum(data):
     return hashlib.md5(data).hexdigest()

@@ -6,7 +6,6 @@ import time
 from datetime import datetime
 
 SEG_SIZE = 1024
-TIMEOUT = 2
 
 # Estruturas:
 # - { 'filename': [seg0, seg1, ...] }
@@ -145,7 +144,7 @@ def main():
     print(f'Servidor escutando no endereco: {S_IP}:{S_PORT}')
 
     # Configuração de timeout do socket (para a verificação dos pacotes perdidos)
-    S_SOCKET.settimeout(TIMEOUT/2)
+    S_SOCKET.settimeout(TIMEOUT / 2)
 
     while True:
         # Aguardar conexões/mensagens de clientes.
