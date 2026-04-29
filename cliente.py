@@ -104,7 +104,7 @@ def main():
     msg = f'GET {FILENAME}'
 
     # Configuração de timeout do socket (para a verificação de conexão com o servidor)
-    C_SOCKET.settimeout(TIMEOUT * 2)
+    C_SOCKET.settimeout(TIMEOUT * 10)
     confirmed_connection = False
 
     C_SOCKET.sendto(msg.encode(), SERVER)

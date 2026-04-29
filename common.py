@@ -15,7 +15,7 @@ FILE_DIR = 'files'
 
 WND_SIZE = 20
 
-TIMEOUT = 2
+TIMEOUT = 0.1
 
 def checksum(data):
     return hashlib.md5(data).hexdigest()
