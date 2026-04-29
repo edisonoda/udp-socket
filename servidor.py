@@ -37,8 +37,7 @@ def create_client(filename, addr):
         'sent_times': {},
         'seq': 0,
         'wnd_start': 0,
-        'wnd_size': WND_SIZE,
-        'ended': False
+        'wnd_size': WND_SIZE
     }
 
 def send_window(addr):
@@ -53,8 +52,7 @@ def send_window(addr):
         client['sent_times'][seq] = datetime.now().timestamp()
         client['seq'] += 1
     
-    if client['seq'] == total and not client['ended']:
-        client['ended'] = True
+    if len(client['acked']) == total:
         print(f'Transferência finalizada para {formatted_client(addr)}: {filename}')
         S_SOCKET.sendto(b'END', addr)
 
@@ -138,7 +136,7 @@ def check_timeouts():
         for seq in range(client['wnd_start'], client['seq']):
             if seq not in client['acked']:
                 if now - client['sent_times'].get(seq, 0) > TIMEOUT:
-                    print(f"!!! [{datetime.now().time().isoformat()}] Timeout {seq} para {addr}")
+                    print(f"!!! [{datetime.now().time().isoformat()}] Timeout {seq + 1} para {addr}")
                     send_segment(client['filename'], seq, client['addr'])
                     client['sent_times'][seq] = now
 

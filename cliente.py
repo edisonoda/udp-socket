@@ -34,7 +34,7 @@ def write_file():
 
 def check_package_loss(seq):
     if random.random() < LOSS_PROB:
-        print(f'!!! [{datetime.now().time().isoformat()}] Pacote {seq} perdido')
+        print(f'!!! [{datetime.now().time().isoformat()}] Pacote {seq + 1} perdido')
         return True
     return False
 
