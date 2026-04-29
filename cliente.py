@@ -114,6 +114,7 @@ def main():
         # Aguarda resposta (buffer de 2048) e decodifica
         try:
             res, addr = C_SOCKET.recvfrom(2048)
+            confirmed_connection = True
             end = handle_res(res, addr)
         except timeout:
             if not confirmed_connection:
