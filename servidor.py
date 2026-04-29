@@ -3,9 +3,10 @@ from common import *
 from socket import *
 import os
 import time
+from datetime import datetime
 
 SEG_SIZE = 1024
-TIMEOUT = .5
+TIMEOUT = 2
 
 # Estruturas:
 # - { 'filename': [seg0, seg1, ...] }
@@ -49,7 +50,7 @@ def send_window(addr):
         seq = client['seq']
         send_segment(filename, seq, addr)
 
-        client['sent_times'][seq] = time.time()
+        client['sent_times'][seq] = datetime.now().timestamp()
         client['seq'] += 1
     
     if client['seq'] == total and not client['ended']:
@@ -91,7 +92,7 @@ def send_segment(filename, seq, addr):
 
     header = f'DATA {seq} {cs} '.encode()
 
-    print(f'Enviando {seq + 1}/{len(FILES[filename])} para {formatted_client(addr)}')
+    print(f'[{datetime.now().time().isoformat()}] Enviando {seq + 1}/{len(FILES[filename])} para {formatted_client(addr)}')
     S_SOCKET.sendto(header + data, addr)
 
 def handle_ack(addr, seq):
@@ -110,7 +111,7 @@ def handle_nack(addr, seq):
     if client:
         print(f'NACK recebido para o pacote {seq + 1} de {formatted_client(addr)}')
         send_segment(client['filename'], seq, addr)
-        client['sent_times'][seq] = time.time()
+        client['sent_times'][seq] = datetime.now().timestamp()
 
 # Protocolo simples para receber a requisição
 def handle_req(msg, addr):
@@ -131,13 +132,13 @@ def handle_req(msg, addr):
         handle_nack(addr, seq)
 
 def check_timeouts():
-    now = time.time()
+    now = datetime.now().timestamp()
 
     for addr, client in CLIENTS.items():
         for seq in range(client['wnd_start'], client['seq']):
             if seq not in client['acked']:
                 if now - client['sent_times'].get(seq, 0) > TIMEOUT:
-                    print(f"!!! Timeout {seq} para {addr}")
+                    print(f"!!! [{datetime.now().time().isoformat()}] Timeout {seq} para {addr}")
                     send_segment(client['filename'], seq, client['addr'])
                     client['sent_times'][seq] = now
 

@@ -34,12 +34,17 @@ def write_file():
 
 def check_package_loss(seq):
     if random.random() < LOSS_PROB:
-        print(f'Pacote {seq} perdido!')
+        print(f'!!! [{datetime.now().time().isoformat()}] Pacote {seq} perdido')
         return True
     return False
 
 # Estrutura: DATA seq checksum bytes
 def receive_segment(args):
+    if len(args) < 3:
+        print(f'[{datetime.now().time().isoformat()}] Erro (pacote truncado | argumentos insuficientes) no segmento {seq + 1}')
+        C_SOCKET.sendto(f'NACK {seq}'.encode(), SERVER)
+        return
+    
     seq, cs = args[:2]
     seq = int(seq.decode())
     cs = cs.decode()
@@ -48,10 +53,10 @@ def receive_segment(args):
     data = args[2]
 
     if cs != checksum(data):
-        print(f'Erro (checksum) no segmento {seq + 1}')
+        print(f'[{datetime.now().time().isoformat()}] Erro (checksum) no segmento {seq + 1}')
         C_SOCKET.sendto(f'NACK {seq}'.encode(), SERVER)
     else:
-        print(f'Recebido: {seq + 1}/{TOTAL_SEGS}')
+        print(f'[{datetime.now().time().isoformat()}] Recebido: {seq + 1}/{TOTAL_SEGS}')
         RECEIVED[seq] = data
         C_SOCKET.sendto(f'ACK {seq}'.encode(), SERVER)
 
@@ -62,14 +67,14 @@ def handle_res(res, addr):
     if action == 'START':
         global TOTAL_SEGS
         TOTAL_SEGS = int(args[0].decode())
+    elif action == 'DATA':
+        receive_segment(args)
+    elif action == 'ERROR':
+        print(f'ERROR {" ".join(arg.decode() for arg in args)}')
     elif action == 'END':
         print('Finalizado!')
         write_file()
         return True
-    elif action == 'ERROR':
-        print(f'ERROR {" ".join(arg.decode() for arg in args)}')
-    elif action == 'DATA':
-        receive_segment(args)
     
     return False
 

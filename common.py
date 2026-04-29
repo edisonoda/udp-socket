@@ -5,7 +5,7 @@ import hashlib
 # - START size
 # - DATA seq checksum bytes
 # - (N)ACK seq
-# - ERROR
+# - ERROR msg
 # - END
 
 S_IP = '127.0.0.1'
